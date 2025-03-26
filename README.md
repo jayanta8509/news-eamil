@@ -68,28 +68,64 @@ Finds expert recommendations for the top news topics. This endpoint:
 
 Response format:
 ```json
-[
-  {
-    "output": {
-      "expert_recommendations": [
+{
+  "expert_recommendations": [
+    {
+      "topic_id": 1,
+      "topic": "Topic headline",
+      "experts": [
         {
-          "topic": "Topic headline",
-          "experts": [
-            {
-              "name": "Expert name and title",
-              "institution": "Academic institution",
-              "expertise": "Specific expertise area",
-              "notable_work": "Relevant work or appearances",
-              "unique_perspective": "Specific angle they bring",
-              "contact_method": "General contact method",
-              "suggested_questions": ["Question 1", "Question 2"]
-            }
-          ]
+          "name": "Expert Name",
+          "institution": "University or Organization",
+          "expertise": "Relevant field of expertise",
+          "notable_work": "Publications or achievements",
+          "unique_perspective": "What makes their view valuable",
+          "contact_method": "How to reach them",
+          "suggested_questions": ["Question 1", "Question 2"],
+          "contact_info": "expert.name@institution.edu"
         }
       ]
     }
-  }
-]
+  ]
+}
+```
+
+### POST /email/generate
+
+Generates a personalized email template for requesting expert commentary. This endpoint:
+1. Takes expert information as input
+2. Creates a professional email template with a clear deadline and specific questions
+3. Returns a formatted email ready to be sent
+
+Request Body:
+```json
+{
+  "topic": "News topic headline",
+  "name": "Dr. Expert Name",
+  "institution": "University Name",
+  "expertise": "Field of expertise",
+  "notable_work": "Publications or achievements",
+  "unique_perspective": "What makes their view valuable",
+  "contact_method": "How to reach them",
+  "suggested_questions": ["Question 1", "Question 2"],
+  "contact_info": "expert.name@institution.edu"
+}
+```
+
+Response format:
+```json
+{
+  "email_templates": [
+    {
+      "expert_name": "Dr. Expert Name",
+      "topic": "News topic headline",
+      "subject": "Expert Commentary Request: News topic headline - Response Needed in 6 Hours",
+      "greeting": "Dear Dr. Name,",
+      "email_body": "Professional email body with questions and deadline...",
+      "signature": "Best regards,\nEditor Name\nPosition, Organization\nemail@organization.com\n(123) 456-7890"
+    }
+  ]
+}
 ```
 
 ## API Documentation

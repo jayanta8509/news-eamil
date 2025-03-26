@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List, Dict, Any
 from serpapi import GoogleSearch
 import os
 from dotenv import load_dotenv
@@ -40,6 +40,17 @@ class NewsStory(BaseModel):
 
 class NewsResponse(BaseModel):
     output: dict
+
+class ExpertInput(BaseModel):
+    topic: str
+    name: str
+    institution: str
+    expertise: str
+    notable_work: str
+    unique_perspective: str
+    contact_method: str
+    suggested_questions: List[str]
+    contact_info: str
 
 async def fetch_news_data():
     """
@@ -142,6 +153,26 @@ async def get_expert_recommendations():
         
         # Return as a list for consistent response format
         return [experts_data, {"status":"success","status_code":200}]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/email/generate", response_model=Dict[str, Any])
+async def generate_email_template(expert_data: ExpertInput):
+    """
+    Generate a personalized email template for an expert based on their information.
+    """
+    try:
+        # Import the email generator
+        from email_agent import generate_expert_email
+        
+        # Convert Pydantic model to dictionary
+        expert_dict = expert_data.dict()
+        
+        # Generate email template
+        email_template = generate_expert_email(expert_dict)
+        
+        return email_template
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
