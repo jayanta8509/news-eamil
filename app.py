@@ -96,8 +96,7 @@ async def get_news():
     """
     Get news stories from the past 24 hours using GET method.
     """
-    # return await fetch_news_data()
-    return [{"status":"success","status_code":200}]
+    return await fetch_news_data()
 
 @app.get("/news/analysis")
 async def get_news_analysis():
