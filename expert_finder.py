@@ -4,6 +4,7 @@ import openai
 from typing import List, Dict
 import json
 from datetime import datetime
+import traceback  # Add for detailed error tracing
 
 # Load environment variables
 load_dotenv()
@@ -18,18 +19,26 @@ openai.api_key = OPENAI_API_KEY
 
 class ExpertFinder:
     def __init__(self):
-        self.model = "gpt-4o"  # Using GPT-4 for better expert recommendations
+        self.model = "gpt-4o-mini"  # Using a more available model
 
-    def find_experts(self, news_analysis: Dict) -> Dict:
+    def find_experts_for_topic(self, topic: Dict) -> Dict:
         """
-        Find expert recommendations for each news topic identified
+        Find expert recommendations for a single news topic
         """
         try:
+            # print(f"Finding experts for topic: {topic.get('headline', 'Unknown Topic')}")
+            # print(f"Using OpenAI model: {self.model}")
+            # print(f"OpenAI API key is {'set' if openai.api_key else 'NOT SET'}")
+            
+            # Check if OpenAI API key is valid
+            if not openai.api_key or len(openai.api_key) < 10:
+                raise ValueError("OpenAI API key is missing or invalid. Please check your .env file.")
+                
             # Prepare the prompt for OpenAI
             prompt = f"""
-            For each of the 3 news topics previously identified in the JSON, identify 3 specific academic experts who would be ideal candidates to provide valuable commentary. Format your response as valid JSON.
+            For the following news topic, identify 3 specific academic experts who would be ideal candidates to provide valuable commentary. Format your response as valid JSON.
 
-            For each topic in the input JSON's selected_topics array, find exactly 3 experts who meet these criteria:
+            Find exactly 3 experts who meet these criteria:
             - Have demonstrated expertise directly relevant to the specific news topic
             - Hold academic credentials or research positions at universities or research institutions
             - Have published work, given interviews, or made public statements on similar issues
@@ -39,8 +48,8 @@ class ExpertFinder:
             {{
               "expert_recommendations": [
                 {{
-                  "topic_id": 1,
-                  "topic": "EXACT headline from the input topic",
+                  "topic_id": {topic.get("topic_id", 1)},
+                  "topic": "{topic.get("headline", "")}",
                   "experts": [
                     {{
                       "name": "Full name and title",
@@ -56,26 +65,25 @@ class ExpertFinder:
                     // Expert 3 structure (same fields)
                   ]
                 }}
-                // Additional topics follow the same structure
               ]
             }}
 
             CRITICAL INSTRUCTIONS:
-            1. Use EXACT headlines from the input topics
+            1. Use the EXACT headline from the input topic
             2. For each expert, draw questions from the topic's expert_angles when available
             3. Ensure expert perspectives are diverse and relevant
             4. For contact_info, generate a realistic academic email address based on the expert's name and institution
-            5. Add topic_id field to each topic
-            6. Focus on real experts with verifiable credentials and relevant expertise
-            7. Ensure the final output is valid, parseable JSON
+            5. Focus on real experts with verifiable credentials and relevant expertise
+            6. Ensure the final output is valid, parseable JSON
 
-            Input JSON:
-            {json.dumps(news_analysis, indent=2)}
+            Input topic:
+            {json.dumps(topic, indent=2)}
 
             YOU MUST RETURN YOUR RESPONSE IN VALID JSON FORMAT ONLY.
             """
 
             # Get expert recommendations from OpenAI
+            print("Sending request to OpenAI API...")
             response = openai.chat.completions.create(
                 model=self.model,
                 messages=[
@@ -86,28 +94,162 @@ class ExpertFinder:
                 max_tokens=5000,
                 response_format={"type": "json_object"}
             )
+            print("Received response from OpenAI API.")
 
             # Parse the response
-            experts_data = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            if not content:
+                raise ValueError("Empty response received from OpenAI API")
+                
+            print("Parsing JSON response...")
+            experts_data = json.loads(content)
+            print("Successfully parsed JSON response.")
+            
+            # Validate the output structure
+            if "expert_recommendations" not in experts_data:
+                print("Warning: expert_recommendations field missing from OpenAI response.")
+                # Create a default structure if the expected structure is missing
+                experts_data = {
+                    "expert_recommendations": [
+                        {
+                            "topic_id": topic.get("topic_id", 1),
+                            "topic": topic.get("headline", ""),
+                            "experts": []
+                        }
+                    ]
+                }
             
             return experts_data
 
+        except openai.error.AuthenticationError as e:
+            error_msg = "OpenAI API authentication error. Please check your API key."
+            print(f"ERROR: {error_msg}")
+            print(f"Original error: {str(e)}")
+            return {
+                "error": True,
+                "expert_recommendations": [
+                    {
+                        "topic_id": topic.get("topic_id", 1),
+                        "topic": topic.get("headline", ""),
+                        "experts": [
+                            {
+                                "name": "API Authentication Error",
+                                "institution": "Please check your OpenAI API key",
+                                "expertise": error_msg,
+                                "notable_work": "N/A",
+                                "unique_perspective": "N/A",
+                                "contact_method": "N/A",
+                                "suggested_questions": [],
+                                "contact_info": "support@example.com"
+                            }
+                        ]
+                    }
+                ]
+            }
+            
+        except openai.error.RateLimitError as e:
+            error_msg = "OpenAI API rate limit exceeded. Please try again later."
+            print(f"ERROR: {error_msg}")
+            print(f"Original error: {str(e)}")
+            return {
+                "error": True,
+                "expert_recommendations": [
+                    {
+                        "topic_id": topic.get("topic_id", 1),
+                        "topic": topic.get("headline", ""),
+                        "experts": [
+                            {
+                                "name": "API Rate Limit Error",
+                                "institution": "Please try again later",
+                                "expertise": error_msg,
+                                "notable_work": "N/A",
+                                "unique_perspective": "N/A",
+                                "contact_method": "N/A",
+                                "suggested_questions": [],
+                                "contact_info": "support@example.com"
+                            }
+                        ]
+                    }
+                ]
+            }
+            
         except Exception as e:
-            raise Exception(f"Error finding experts: {str(e)}")
+            # Get detailed error info
+            error_type = type(e).__name__
+            stack_trace = traceback.format_exc()
+            error_msg = f"{error_type}: {str(e)}"
+            
+            # Log the error with full details
+            print(f"ERROR finding experts for topic: {error_msg}")
+            print(f"Stack trace: {stack_trace}")
+            
+            # Return a valid fallback response
+            return {
+                "error": True,
+                "expert_recommendations": [
+                    {
+                        "topic_id": topic.get("topic_id", 1),
+                        "topic": topic.get("headline", ""),
+                        "experts": [
+                            {
+                                "name": "Error fetching experts",
+                                "institution": "Please try again later",
+                                "expertise": f"API error: {error_msg}",
+                                "notable_work": "N/A",
+                                "unique_perspective": "N/A",
+                                "contact_method": "N/A",
+                                "suggested_questions": [],
+                                "contact_info": "support@example.com"
+                            }
+                        ]
+                    }
+                ]
+            }
 
-def find_experts_for_topics(news_analysis: Dict) -> Dict:
+def find_experts_for_single_topic(topic: Dict) -> Dict:
     """
-    Main function to find expert recommendations for news topics
+    Function to find expert recommendations for a single topic
     """
-    finder = ExpertFinder()
-    experts_data = finder.find_experts(news_analysis)
-    
-    # Format for the required output structure
-    formatted_output = {
-        "output": experts_data
-    }
-    
-    return formatted_output
+    try:
+        print(f"Initiating expert finder for topic: {topic.get('headline', 'Unknown')}")
+        finder = ExpertFinder()
+        experts_data = finder.find_experts_for_topic(topic)
+        
+        if not experts_data:
+            raise ValueError("No expert data was returned")
+            
+        # Check if there was an error
+        if experts_data.get("error", False):
+            print("Error flag found in experts_data")
+            return experts_data
+            
+        return experts_data
+    except Exception as e:
+        stack_trace = traceback.format_exc()
+        print(f"ERROR in find_experts_for_single_topic: {str(e)}")
+        print(f"Stack trace: {stack_trace}")
+        # Return a fallback response
+        return {
+            "error": True,
+            "expert_recommendations": [
+                {
+                    "topic_id": topic.get("topic_id", 1),
+                    "topic": topic.get("headline", ""),
+                    "experts": [
+                        {
+                            "name": "Error fetching experts",
+                            "institution": "Please try again later",
+                            "expertise": f"Function error: {str(e)}",
+                            "notable_work": "N/A",
+                            "unique_perspective": "N/A",
+                            "contact_method": "N/A",
+                            "suggested_questions": [],
+                            "contact_info": "support@example.com"
+                        }
+                    ]
+                }
+            ]
+        }
 
 if __name__ == "__main__":
     # Example usage
@@ -120,12 +262,6 @@ if __name__ == "__main__":
         
         # Analyze the news
         news_analysis = analyze_news_stories(news_data)
-        
-        # Find experts for the analyzed topics
-        experts_data = find_experts_for_topics(news_analysis)
-        
-        # Print results
-        print(json.dumps([experts_data], indent=2))
 
     import asyncio
     asyncio.run(test_expert_finder()) 
