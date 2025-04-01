@@ -269,6 +269,109 @@ async def get_experts_for_topic(topic: TopicInput):
             "status_code": 500
         }
 
+# Common function to fetch general news
+async def fetch_general_news():
+    """
+    Fetch the top 3 general news stories from the last 24 hours
+    """
+    try:
+        # Configure SerpAPI search
+        params = {
+            "engine": "google",
+            "q": "news",
+            "tbm": "nws",
+            "api_key": SERPAPI_KEY,
+            "time": "d1",  # Last 24 hours
+            "num": 3  # Number of results
+        }
+
+        # Perform search
+        search = GoogleSearch(params)
+        results = search.get_dict()
+
+        # Process and structure news stories
+        news_stories = []
+        if "news_results" in results:
+            for story in results["news_results"]:
+                # Extract key entities (organizations and people mentioned)
+                key_entities = []
+                if "source" in story:
+                    key_entities.append(story["source"])
+                
+                # Create structured news story
+                news_story = {
+                    "headline": story.get("title", ""),
+                    "summary": story.get("snippet", ""),
+                    "source": story.get("source", ""),
+                    "link": story.get("link", ""),
+                    "published": story.get("date", "")
+                }
+                news_stories.append(news_story)
+
+        # Format response according to required structure
+        response = {
+            "news_stories": news_stories,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+        return response
+
+    except Exception as e:
+        print(f"Error fetching general news: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return {
+            "news_stories": [],
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "error": str(e)
+        }
+
+@app.get("/news/top")
+async def get_top_news():
+    """
+    Get the top 3 news from the last 24 hours and analyze them for expert commentary topics.
+    """
+    try:
+        # Import the analyzer
+        from agent import analyze_news_stories
+        
+        # Fetch news data
+        news_data = await fetch_general_news()
+        
+        # Convert to the format expected by the analyzer
+        formatted_news_data = [{
+            "output": {
+                "news_stories": [
+                    {
+                        "headline": story.get("headline", ""),
+                        "summary": story.get("summary", ""),
+                        "significance": "This story is significant as it represents current developments in important global events.",
+                        "key_entities": [story.get("source", "")],
+                        "commentary_note": "Expert analysis would provide deeper insights into the implications and potential developments."
+                    } for story in news_data.get("news_stories", [])
+                ]
+            }
+        }]
+        
+        # Analyze the news
+        analysis = analyze_news_stories(formatted_news_data)
+        
+        return {"output": analysis, "status": "success", "status_code": 200}
+    
+    except Exception as e:
+        print(f"API Error in /news/top: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return {
+            "output": {
+                "selected_topics": [],
+                "analysis_timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+            },
+            "status": "error",
+            "status_code": 500,
+            "error": str(e)
+        }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000) 

@@ -1,9 +1,10 @@
 # News Analysis API with Expert Recommendations
 
-This FastAPI application provides three main services:
-1. Analyzing news stories from specific categories to identify important topics
-2. Finding academic experts for specific topics
-3. Generating professional email templates to contact these experts
+This FastAPI application provides four main services:
+1. Fetching the top news stories from the last 24 hours
+2. Analyzing news stories from specific categories to identify important topics
+3. Finding academic experts for specific topics
+4. Generating professional email templates to contact these experts
 
 ## Setup
 
@@ -34,6 +35,53 @@ uvicorn app:app --reload
 The API will be available at `http://localhost:8000`
 
 ## API Endpoints
+
+### GET /news/top
+
+Fetches and analyzes the top 3 general news stories from the last 24 hours. This endpoint provides a simple way to get analyzed topics ready for expert commentary without needing to specify a category.
+
+Response format:
+```json
+{
+  "output": {
+    "selected_topics": [
+      {
+        "topic_id": 1,
+        "headline": "Prince Harry wins tabloid legal battle",
+        "summary": "The Duke of Sussex achieved a significant legal victory against British tabloids, resulting in public apologies and financial compensation. This event highlights ongoing issues of privacy and media ethics.",
+        "need_for_commentary": "This topic needs expert input to analyze the implications of this legal battle on media practices and the rights of public figures.",
+        "expert_angles": [
+          "What does this case signify about the evolving relationship between celebrities and the media?",
+          "How might this ruling influence future media regulations and journalistic ethics?"
+        ]
+      },
+      {
+        "topic_id": 2,
+        "headline": "Effects of Tabloid on Information Processing and Evaluative Responses",
+        "summary": "A recent study investigates how the presentation of tabloid news affects viewer engagement and response. This research sheds light on the broader implications of media consumption.",
+        "need_for_commentary": "Expert analysis is essential to contextualize these findings within the current media landscape and their effects on public perception.",
+        "expert_angles": [
+          "How do tabloid formats impact audience understanding of important news events?",
+          "What are the potential long-term effects of tabloid journalism on public discourse?"
+        ]
+      },
+      {
+        "topic_id": 3,
+        "headline": "Tabloid Journalism and Its Global Impact",
+        "summary": "The rise of tabloid journalism represents a shift in how news is consumed worldwide, often prioritizing sensationalism over factual reporting. This trend raises questions about media responsibility.",
+        "need_for_commentary": "This topic requires expert insights to discuss the implications of sensationalist journalism on democracy and informed citizenship.",
+        "expert_angles": [
+          "What are the societal consequences of the shift towards sensationalism in journalism?",
+          "How can consumers critically engage with tabloid news to mitigate misinformation?"
+        ]
+      }
+    ],
+    "analysis_timestamp": "2025-04-01 14:26:06.316866"
+  },
+  "status": "success",
+  "status_code": 200
+}
+```
 
 ### POST /news/analysis/category
 
