@@ -209,6 +209,49 @@ Response format:
 }
 ```
 
+### POST /format-simple-email
+
+A simplified endpoint that formats a basic email with minimal input requirements.
+
+Request Body:
+```json
+{
+  "subject": "Trump's Executive Order on Voting Requirements",
+  "body": "The executive order regarding proof of citizenship for voter registration raises serious constitutional questions. The 24th Amendment prohibits poll taxes in federal elections, and courts have generally viewed documentation requirements that impose costs on voters as potentially unconstitutional barriers. Additionally, the National Voter Registration Act established specific procedures for voter registration that may conflict with this order. States maintain primary authority over voting procedures, creating a complex federalism issue.",
+  "name": "Dr. Richard Hasen"
+}
+```
+
+This endpoint requires only three fields:
+- `subject`: The email subject line
+- `body`: The raw content to be formatted (include all necessary information here)
+- `name`: The name of the expert
+
+The API will automatically analyze the body content and extract any information about media outlets, editors, etc. if present. Everything needed for formatting should be included in the body field.
+
+Response format:
+```json
+{
+  "formatted_email": {
+    "subject": "Trump's Executive Order on Voting Requirements",
+    "greeting": "Dear Editor,",
+    "introduction": "I am pleased to share expert commentary from Dr. Richard Hasen regarding the recent executive order on voting requirements. His analysis provides valuable insights into the constitutional implications of this policy change.",
+    "formatted_body": "\"The executive order regarding proof of citizenship for voter registration raises serious constitutional questions,\" explains Dr. Hasen. \"The 24th Amendment prohibits poll taxes in federal elections, and courts have generally viewed documentation requirements that impose costs on voters as potentially unconstitutional barriers.\"\n\n\"Additionally, the National Voter Registration Act established specific procedures for voter registration that may conflict with this order,\" Dr. Hasen notes. \"States maintain primary authority over voting procedures, creating a complex federalism issue.\"",
+    "closing": "Best regards,\nNews Analysis Team\ncontact@newsanalysis.com"
+  },
+  "word_count": 102,
+  "key_points": [
+    "Constitutional concerns regarding the 24th Amendment",
+    "Potential conflicts with the National Voter Registration Act",
+    "Federalism issues with state vs. federal authority"
+  ],
+  "status": "success",
+  "status_code": 200
+}
+```
+
+This endpoint takes raw content and formats it into a professional email with proper attribution, quotations, and structure.
+
 ## Error Handling
 
 All endpoints include robust error handling and will return formatted error responses rather than failing with HTTP errors. This makes error handling more predictable on the client side.

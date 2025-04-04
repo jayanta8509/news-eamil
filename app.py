@@ -59,6 +59,11 @@ class TopicInput(BaseModel):
     need_for_commentary: str
     expert_angles: List[str]
 
+class SimpleEmailInput(BaseModel):
+    subject: str
+    body: str
+    name: str
+
 async def fetch_news_by_category(category: str):
     """
     Fetch news data based on a specific category
@@ -368,6 +373,105 @@ async def get_top_news():
                 "analysis_timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
             },
             "status": "error",
+            "status_code": 500,
+            "error": str(e)
+        }
+
+@app.post("/format-simple-email", response_model=Dict[str, Any])
+async def format_simple_email(email_data: SimpleEmailInput):
+    """
+    Format a simple email with just subject, body and expert name.
+    All information should be included in the body field.
+    Returns a professionally formatted email ready for media outreach.
+    """
+    try:
+        # Construct the prompt for formatting
+        prompt = f"""
+You are a professional editor specializing in formatting expert commentary for news articles.
+
+Format the provided content into a structured, professional email template that can be sent to media outlets.
+The email should present the content in a journalistic format with proper attribution.
+
+INFORMATION:
+- Email Subject: {email_data.subject}
+- Expert Name: {email_data.name}
+
+CONTENT TO FORMAT:
+{email_data.body}
+
+INSTRUCTIONS:
+1. Extract any information about media outlets, editors, etc. directly from the body content if present
+2. Use the provided subject line
+3. Create a brief introduction explaining that this is expert commentary
+4. Format the body content into 2-3 quotable paragraphs with proper attribution
+5. Create a professional closing
+
+Make sure the formatted email maintains the key points while being concise and media-ready.
+
+Format your response as valid JSON with this structure:
+{{
+  "formatted_email": {{
+    "subject": "The provided subject line",
+    "greeting": "Dear Editor,",
+    "introduction": "Introduction paragraph here...",
+    "formatted_body": "Properly formatted body content with quotes and attribution...",
+    "closing": "Professional closing here..."
+  }},
+  "key_points": ["Key point 1", "Key point 2", "Key point 3"]
+}}
+
+YOU MUST RETURN YOUR RESPONSE IN VALID JSON FORMAT ONLY.
+"""
+
+        # Import OpenAI
+        import openai
+        from dotenv import load_dotenv
+        import os
+        import json
+        
+        # Ensure API key is loaded
+        load_dotenv()
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        
+        # Call OpenAI to format the email
+        response = openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a professional editor specializing in formatting content for media outlets."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=2000,
+            response_format={"type": "json_object"}
+        )
+        
+        # Parse the response
+        formatted_email = json.loads(response.choices[0].message.content)
+        
+        # Add status information
+        result = {
+            **formatted_email,
+            "status": "success",
+            "status_code": 200
+        }
+        
+        return result
+    
+    except Exception as e:
+        print(f"API Error in /format-simple-email: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return {
+            "formatted_email": {
+                "subject": email_data.subject,
+                "greeting": "Dear Editor,",
+                "introduction": "I'm sharing the following expert commentary that may be of interest to your audience.",
+                "formatted_body": email_data.body,
+                "closing": f"Best regards,\n{email_data.name}"
+            },
+            "word_count": len(email_data.body.split()),
+            "key_points": ["Error occurred while formatting the email"],
+            "status": "error", 
             "status_code": 500,
             "error": str(e)
         }
