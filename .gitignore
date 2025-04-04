@@ -3,4 +3,4 @@ env
 __pycache__
 test_experts_endpoint.py
 test_topic_endpoint.py
-#gunicorn app:app --bind 0.0.0.0:8000 --timeout 8000 --workers 3 --worker-class uvicorn.workers.UvicornWorker --daemon
+# server -- gunicorn app:app --bind 0.0.0.0:8000 --timeout 8000 --workers 3 --worker-class uvicorn.workers.UvicornWorker --daemon
