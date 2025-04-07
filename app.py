@@ -124,15 +124,20 @@ async def analyze_news_by_category(query: NewsQueryInput):
     - "sports news"
     - "business or finance news"
     - "European news"
-    - "tabloid or sensational news"
+    - "showbiz world" (celebrities, music, Hollywood)
     - "legal news"
     """
     try:
         # Import the analyzer
         from agent import analyze_news_stories
         
+        # Handle special categories
+        search_query = query.category
+        if search_query.lower() == "showbiz world":
+            search_query = "celebrity news hollywood music entertainment"
+            
         # Fetch news data for the specified category
-        news_data = await fetch_news_by_category(query.category)
+        news_data = await fetch_news_by_category(search_query)
         
         # Analyze the news
         analysis = analyze_news_stories(news_data)

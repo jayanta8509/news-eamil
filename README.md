@@ -98,7 +98,7 @@ Example categories:
 - "sports news"
 - "business or finance news"
 - "European news"
-- "tabloid or sensational news"
+- "showbiz world" (celebrities, music, Hollywood)
 - "legal news"
 
 Response format:
